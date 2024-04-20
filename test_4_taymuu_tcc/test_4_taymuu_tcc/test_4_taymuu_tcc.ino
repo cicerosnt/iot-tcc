@@ -2,6 +2,7 @@
 // Author: Taimur Shahzad Gill
 // Copyright (c) 2018 by Andreas Trappmann. All rights reserved.
 // Copyright (c) 2019 by Dirk Carstensen.
+// https://github.com/taymuur/ESP32-PN5180-PN532
 
 #include <PN5180.h>
 #include <PN5180ISO15693.h>

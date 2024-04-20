@@ -1,36 +1,47 @@
-// NAME: PN5180-Library.ino
+/*
+Bu projede ESP32uC ve PN5180 RF Sensoru ile NFC kart okuma sistemi programliyoruz.
+Sadece 1 kart isigi acar, Sadece baska 1 kart isigi kapatir.
+Her acilip kapanmada kullaniciya bilgi verilir.
 
-// ESP-32    <--> PN5180 pin mapping:
-// GND       <--> GND
-// 3.3V      <--> 3.3V
-// Reset, 17  --> RST
-// SS, 5     --> NSS (=Not SS -> active LOW)
-// MOSI, 23   --> MOSI
-// MISO, 19  <--  MISO
-// SCLK, 18   --> SCLK
-// BUSY, 16   <--  BUSY
-//
+Bu sistem yemekhane kartlari, bir ortama giris cikis kartlari , turnike sistemleri gibi yerlerde kullanilir.
+Kullandigim kart Mifare 1K Card. 16 sector ve her sector'de 4 block bulunmakta.
+Her sectorun 4 blogunun 3'une veriler yukleyebiliriz (Isim, giris-cikis saati vb.)
+Kartın datasheet'i icin -> https://www.nxp.com/docs/en/data-sheet/MF1S50YYX_V1.pdf 
 
-#include <PN5180.h>
-#include <PN5180ISO15693.h>
+PN5180                 ESP32     baglantilari;
+5V        ------       5V
+3V        ------       Baglamadim.
+RST       ------       14 (Istege bagli, uygun bir GPIO secilebilir)
+NSS       ------       12 (Istege bagli, uygun bir GPIO secilebilir)
+MOSI      ------       23
+MISO      ------       19
+SCK       ------       18
+BUSY      ------       13 (Istege bagli, uygun bir GPIO secilebilir)
+GND       ------       GND 
+*/
 
-#define PN5180_NSS  5
-#define PN5180_BUSY 16
-#define PN5180_RST  17
+#include "PN5180.h"
+#include <PN5180ISO14443.h>
+#define PN5180_NSS  12  
+#define PN5180_BUSY 13 
+#define PN5180_RST  14
+#define LED 2
 
-PN5180ISO15693 nfc(PN5180_NSS, PN5180_BUSY, PN5180_RST);
-
+PN5180ISO14443 nfc(PN5180_NSS, PN5180_BUSY, PN5180_RST);
+void showIRQStatus(uint32_t irqStatus);
 void setup() {
+  pinMode(LED,OUTPUT);
+  digitalWrite(LED,LOW);
   Serial.begin(115200);
   Serial.println(F("=================================="));
   Serial.println(F("Uploaded: " __DATE__ " " __TIME__));
-  Serial.println(F("PN5180 ISO15693 Demo Sketch"));
+  Serial.println(F("PN5180 ISO14443 Demo Sketch"));
 
   nfc.begin();
 
   Serial.println(F("----------------------------------"));
   Serial.println(F("PN5180 Hard-Reset..."));
-  //nfc.reset();
+  nfc.reset();
 
   Serial.println(F("----------------------------------"));
   Serial.println(F("Reading product version..."));
@@ -66,63 +77,61 @@ void setup() {
   Serial.print(".");
   Serial.println(eepromVersion[0]);
 
+  Serial.println(F("----------------------------------"));
+  Serial.println(F("RF Field is active!"));
+  //nfc.setupRF();
+}
+bool flag1=true;
+bool flag2=true; 
 
-
+// ISO 14443 loop      
+void loop() 
+{
+  Serial.print(F("\num teste")); 
+  uint8_t uid[8];
   
-  Serial.println(F("----------------------------------"));
-  Serial.println(F("Reading IRQ pin config..."));
-  uint8_t irqConfig;
-  nfc.readEEprom(IRQ_PIN_CONFIG, &irqConfig, 1));
-  Serial.print(F("IRQ_PIN_CONFIG=0x"));
-  Serial.println(irqConfig, HEX);
-
-  Serial.println(F("----------------------------------"));
-  Serial.println(F("Reading IRQ_ENABLE register..."));
-  uint32_t irqEnable;
-  nfc.readRegister(IRQ_ENABLE, &irqEnable);
-  Serial.print(F("IRQ_ENABLE=0x"));
-  Serial.println(irqConfig, HEX);
-
-
-  
-
-  Serial.println(F("----------------------------------"));
-  Serial.println(F("Enable RF field..."));
+  String data = "";
+  if (!nfc.readCardSerial(uid)) 
+  {
+    
+    Serial.print(F("\ncard serial successful, UID="));   
+    
+    for (int i=0; i<8; i++) {
+      Serial.print(uid[i], HEX);      //Kartın UID 'sini okumak-gormek isterseniz yorum satiri kaldirin. 
+                                        //Ben ilk UID okuduktan sonra acip kapama esitliginde kullandim.
+      if (i < 2) Serial.print(":");
+      
+      data += String(uid[i],HEX);
+    }
+    
+  }
+  if(data.equals("f3d57ec0000"))   //Isik acan kartimizin UID'si.
+  {
+    if(flag1)
+    {
+    Serial.print("\nISIK ACILDI");
+    Serial.print("\n-----------------------");
+    digitalWrite(LED,HIGH);
+    flag1=false;
+    }
+    flag2=true;
+    return;
+  }
+  if(data.equals("b03310000"))    ////Isik kapatan kartimizin UID'si.
+  {
+    if(flag2)
+    {
+    Serial.print("\nISIK KAPANDI");
+    Serial.print("\n-----------------------");  
+    digitalWrite(LED,LOW);
+    flag2=false;
+    }
+    flag1=true;
+    return;
+  }
+  nfc.reset();
   nfc.setupRF();
 }
-
-uint32_t loopCnt = 0;
-bool errorFlag = false;
-
-//SLIX2 Passwords, first is manufacture standard
-uint8_t standardpassword[] = {0x0F, 0x0F, 0x0F, 0x0F};
-//New Password
-uint8_t password[] = {0x12, 0x34, 0x56, 0x78};
-
-void loop(void)
-{
-
-  delay(1500);
-  if (errorFlag) {
-    uint32_t irqStatus = nfc.getIRQStatus();
-    showIRQStatus(irqStatus);
-
-    if (0 == (RX_SOF_DET_IRQ_STAT & irqStatus)) { // no card detected
-      Serial.println(F("*** No card detected!"));
-    }
-
-    nfc.reset();
-    nfc.setupRF();
-
-    errorFlag = false;
-  }
-
-
-
-  
-  delay(1800);
-}
-
 
 void showIRQStatus(uint32_t irqStatus) {
   Serial.print(F("IRQ-Status 0x"));
