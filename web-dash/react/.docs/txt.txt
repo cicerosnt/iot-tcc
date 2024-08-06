@@ -1,0 +1,3 @@
+npn i tailwind-variants
+
+npm i react-day-picker date-fns

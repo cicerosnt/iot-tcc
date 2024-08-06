@@ -8,7 +8,7 @@
 PN5180ISO15693 nfc(PN5180_NSS, PN5180_BUSY, PN5180_RST);
 
 void setup() {
-  Serial.begin(115200);
+    Serial.begin(115200);
   Serial.println(F("ESP32 FreeStyle Libre Reader"));
 
   Serial.println("Inicializando o leitor...");
@@ -31,10 +31,11 @@ void setup() {
     Serial.println(F("Falha na inicialização!"));
     while (1) {};
   }
+
 }
 
 void loop() {
-  Serial.println(F("Aproxime o sensor FreeStyle Libre..."));
+    Serial.println(F("Aproxime o sensor FreeStyle Libre..."));
   
   uint8_t uid[8];
   ISO15693ErrorCode rc = nfc.getInventory(uid);
@@ -62,14 +63,14 @@ void loop() {
           
           Serial.print(F("Tendência: "));
           switch(trend) {
-            case 0x00: Serial.println(F("Flat")); break;
-            case 0x01: Serial.println(F("Slowly rising")); break;
-            case 0x02: Serial.println(F("Rising")); break;
-            case 0x03: Serial.println(F("Rapidly rising")); break;
-            case 0x04: Serial.println(F("Slowly falling")); break;
-            case 0x05: Serial.println(F("Falling")); break;
-            case 0x06: Serial.println(F("Rapidly falling")); break;
-            default: Serial.println(F("Unknown")); break;
+            case 0x00: Serial.println(F("Estável")); break;
+            case 0x01: Serial.println(F("Subindo lentamente")); break;
+            case 0x02: Serial.println(F("Subindo")); break;
+            case 0x03: Serial.println(F("Subindo rapidamente")); break;
+            case 0x04: Serial.println(F("Caindo lentamente")); break;
+            case 0x05: Serial.println(F("Caindo")); break;
+            case 0x06: Serial.println(F("Caindo rapidamente")); break;
+            default: Serial.println(F("Desconhecido")); break;
           }
         }
       } else {
@@ -80,5 +81,6 @@ void loop() {
     Serial.println(F("Sensor não encontrado!"));
   }
 
-  delay(1000);  // Wait 5 seconds before next reading
+  delay(1500);
+
 }

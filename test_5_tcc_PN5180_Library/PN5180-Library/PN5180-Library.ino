@@ -182,14 +182,14 @@ void loop() {
   Serial.print(F("Loop #"));
   Serial.println(loopCnt++);
 
-/*
-  // code for unlocking an ICODE SLIX2 protected tag   
-  uint8_t password[] = {0x01, 0x02, 0x03, 0x04}; // put your privacy password here
-  ISO15693ErrorCode myrc = nfc.unlockICODESLIX2(password);
-  if (ISO15693_EC_OK == myrc) {
-    Serial.println("unlockICODESLIX2 successful");
-  }
-*/
+  /*
+    // code for unlocking an ICODE SLIX2 protected tag   
+    uint8_t password[] = {0x01, 0x02, 0x03, 0x04}; // put your privacy password here
+    ISO15693ErrorCode myrc = nfc.unlockICODESLIX2(password);
+    if (ISO15693_EC_OK == myrc) {
+      Serial.println("unlockICODESLIX2 successful");
+    }
+  */
   
   uint8_t uid[8];
   ISO15693ErrorCode rc = nfc.getInventory(uid);
